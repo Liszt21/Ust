@@ -1,8 +1,8 @@
 (defsystem "ust"
-  :version "0.1.0"
+  :version "0.1.1"
   :author ""
   :license ""
-  :depends-on ("clish")
+  :depends-on ("clish" "str")
   :components ((:module "src"
                 :components
                 ((:file "main"))))
