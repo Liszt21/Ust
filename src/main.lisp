@@ -1,6 +1,8 @@
 (defpackage ust
-  (:use :cl :clish :str)
+  (:use :cl)
   (:export :cli))
+
+(in-package ust)
 
 (defun shell (&rest cmds)
   (let ((command (str:join ";" cmds)))
@@ -14,7 +16,6 @@
        :output :interactive
        :ignore-error-status t
        :error-output :interactive)))))
-
 
 (defun detect-repository ()
   (loop for path-str in (append
@@ -44,14 +45,16 @@
                 ('sh "sh"))))
     (shell (format nil "~A ~A~{ ~A~}" cmd script args))))
 
-(defun main (cmd &rest args)
-  (if cmd
+(defun main (&rest arguments)
+  (let ((cmd (car arguments))
+        (args (cdr arguments)))
+    (if cmd
       (let ((script (cdr (assoc cmd *scripts* :test #'equal))))
         (if script
             (apply #'run-script (cons script args))
             (format t "Script ~A not founded~%" cmd)))
-      (format t "ss")))
+      (format t "ss"))))
 
 (clish:defcli cli
-  (nil #'main))
+  (:default #'main))
 
