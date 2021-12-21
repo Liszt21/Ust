@@ -4,14 +4,15 @@
 
 (in-package ust)
 
-(defparameter *commands* (list
-                          (cons 'lisp "ros")
-                          (cons 'py "python")
-                          (cons 'js "node")
-                          (cons 'ts "node")
-                          #-os-windows (cons 'sh "sh")
-                          #+os-windows (cons 'cmd "cmd")
-                          #+os-windows (cons 'ps1 "powershell")))
+(defparameter *commands*
+  (list
+   (cons 'lisp "ros")
+   (cons 'py "python")
+   (cons 'js "node")
+   (cons 'ts "node")
+   #-os-windows (cons 'sh "sh")
+   #+os-windows (cons 'cmd "cmd")
+   #+os-windows (cons 'ps1 "powershell")))
 
 (defun shell (&rest cmds)
   (let ((command (str:join ";" cmds)))
@@ -47,14 +48,6 @@
 
 (defparameter *scripts* (get-scripts))
 
-(defun run-script (script &rest args)
-  (let* ((type (intern (string-upcase (pathname-type script))))
-         (cmd (cdar (member type *commands* :key #'car))))
-    (format t "Eval script ~A~%" script)
-    (if cmd
-        (shell (format nil "~A ~A~{ ~A~}" cmd script args))
-        (format t "No available command for script ~A~%" script))))
-
 (defun get-script-path (name)
   (let* ((tmp (str:split "." name))
          (name (car tmp))
@@ -65,7 +58,15 @@
                                (or (not (cdr a))
                                    (equal (cdr a) (pathname-type (cdr b))))))))))
 
-(defun dispatch (&rest arguments)
+(defun run-script (script &rest args)
+  (let* ((type (intern (string-upcase (pathname-type script))))
+         (cmd (cdar (member type *commands* :key #'car))))
+    (format t "Eval script ~A~%" script)
+    (if cmd
+        (shell (format nil "~A ~A~{ ~A~}" cmd script args))
+      (format t "No available command for script ~A~%" script))))
+
+(defun default (&rest arguments)
   (let ((cmd (car arguments))
         (args (cdr arguments)))
     (if cmd
@@ -82,9 +83,16 @@
   (let ((script (get-script-path script)))
     (format t "Script: ~A:~% ~A~%" script (str:from-file script))))
 
+(defun dispatch (action &rest scripts)
+  (dolist (script scripts)
+    (default script action)))
+
 (clish:defcli cli
-  (:default #'dispatch)
+  (:default #'default)
   (list #'list-script)
-  (cat #'cat-script))
+  (cat #'cat-script)
+  (install (lambda (&rest scripts) (apply #'dispatch (cons "install" scripts))))
+  (remove (lambda (&rest scripts) (apply #'dispatch (cons "remove" scripts))))
+  (update (lambda (&rest scripts) (apply #'dispatch (cons "update" scripts)))))
 
 
