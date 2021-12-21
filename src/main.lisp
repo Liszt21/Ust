@@ -4,6 +4,15 @@
 
 (in-package ust)
 
+(defparameter *commands* (list
+                          (cons 'lisp "ros")
+                          (cons 'py "python")
+                          (cons 'js "node")
+                          (cons 'ts "node")
+                          #-os-windows (cons 'sh "sh")
+                          #+os-windows (cons 'cmd "cmd")
+                          #+os-windows (cons 'ps1 "powershell")))
+
 (defun shell (&rest cmds)
   (let ((command (str:join ";" cmds)))
     (third
@@ -33,19 +42,18 @@
   (apply #'append
            (loop for repo in repos
                  collect (loop for file in (uiop:directory-files repo)
+                               when (member (intern (string-upcase (pathname-type file))) *commands* :key #'car)
                                collect (cons (pathname-name file) file)))))
 
 (defparameter *scripts* (get-scripts))
 
 (defun run-script (script &rest args)
   (let* ((type (intern (string-upcase (pathname-type script))))
-         (cmd (case type
-                ('lisp "ros")
-                ('py "python")
-                ('js "node")
-                ('ts "node")
-                ('sh "sh"))))
-    (shell (format nil "~A ~A~{ ~A~}" cmd script args))))
+         (cmd (cdar (member type *commands* :key #'car))))
+    (format t "Eval script ~A~%" script)
+    (if cmd
+        (shell (format nil "~A ~A~{ ~A~}" cmd script args))
+        (format t "No available command for script ~A~%" script))))
 
 (defun get-script-path (name)
   (let* ((tmp (str:split "." name))
