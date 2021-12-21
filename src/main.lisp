@@ -42,10 +42,12 @@
          (cmd (case type
                 ('lisp "ros")
                 ('py "python")
+                ('js "node")
+                ('ts "node")
                 ('sh "sh"))))
     (shell (format nil "~A ~A~{ ~A~}" cmd script args))))
 
-(defun main (&rest arguments)
+(defun dispatch (&rest arguments)
   (let ((cmd (car arguments))
         (args (cdr arguments)))
     (if cmd
@@ -55,6 +57,16 @@
             (format t "Script ~A not founded~%" cmd)))
       (format t "ss"))))
 
+(defun list-script ()
+  (format t "Scripts:~%~{  ~A~%~}~%" *scripts*))
+
+(defun cat-script (script)
+  (let ((script (cdr (assoc script *scripts* :test #'equal))))
+    (format t "Script: ~A:~% ~A~%" script (str:from-file script))))
+
 (clish:defcli cli
-  (:default #'main))
+  (:default #'dispatch)
+  (list #'list-script)
+  (cat #'cat-script))
+
 
