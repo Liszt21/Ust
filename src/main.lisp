@@ -47,11 +47,21 @@
                 ('sh "sh"))))
     (shell (format nil "~A ~A~{ ~A~}" cmd script args))))
 
+(defun get-script-path (name)
+  (let* ((tmp (str:split "." name))
+         (name (car tmp))
+         (type (cadr tmp)))
+    (cdar (member (cons name type) *scripts*
+                  :test (lambda (a b)
+                          (and (equal (car a) (car b))
+                               (or (not (cdr a))
+                                   (equal (cdr a) (pathname-type (cdr b))))))))))
+
 (defun dispatch (&rest arguments)
   (let ((cmd (car arguments))
         (args (cdr arguments)))
     (if cmd
-      (let ((script (cdr (assoc cmd *scripts* :test #'equal))))
+      (let ((script (get-script-path cmd)))
         (if script
             (apply #'run-script (cons script args))
             (format t "Script ~A not founded~%" cmd)))
@@ -61,7 +71,7 @@
   (format t "Scripts:~%~{  ~A~%~}~%" *scripts*))
 
 (defun cat-script (script)
-  (let ((script (cdr (assoc script *scripts* :test #'equal))))
+  (let ((script (get-script-path script)))
     (format t "Script: ~A:~% ~A~%" script (str:from-file script))))
 
 (clish:defcli cli
