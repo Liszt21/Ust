@@ -23,6 +23,7 @@
                #+os-windows "powershell $OLDPWD=pwd;"
                #-os-windows ""
                command)
+       :input :interactive
        :output :interactive
        :ignore-error-status t
        :error-output :interactive)))))
