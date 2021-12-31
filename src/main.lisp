@@ -15,20 +15,20 @@
 (defun load-config ()
   (load-file
     #p"~/.config/ust/config"
-    (list (list 'commands
-                (cons 'lisp "ros")
-                (cons 'py "python")
-                (cons 'js "node")
-                (cons 'ts "node")
-                #-os-windows (cons 'sh "sh")
-                #+os-windows (cons 'cmd "cmd")
-                #+os-windows (cons 'ps1 "powershell"))
-          (cons 'repos
+    (list (list :commands
+                (cons :lisp "ros")
+                (cons :py "python")
+                (cons :js "node")
+                (cons :ts "node")
+                #-os-windows (cons :sh "sh")
+                #+os-windows (cons :cmd "cmd")
+                #+os-windows (cons :ps1 "powershell"))
+          (cons :repos
             (list #p"~/.dotfiles/scripts/"
                   #p"~/.config/ust/scripts/"
                   #p"~/.scripts/")))))
 
-(defun load-cache () (load-file #p"~/.config/ust/cache" '((scripts))))
+(defun load-cache () (load-file #p"~/.config/ust/cache" '((:scripts))))
 
 (defun save-file (content path)
   (uiop:ensure-all-directories-exist (list path))
@@ -60,8 +60,8 @@
   (setf (cdr (assoc key *cache*)) value))
 
 (defun scan-scripts ()
-  (let* ((repos (cdr (assoc 'repos *config*)))
-         (commands (cdr (assoc 'commands *config*)))
+  (let* ((repos (cdr (assoc :repos *config*)))
+         (commands (cdr (assoc :commands *config*)))
          (scripts
           (apply #'append
                   (loop for path in repos
@@ -70,23 +70,23 @@
                         do (format t "Scaning scripts in ~A...~%" path)
                         when repo
                         collect (loop for file in (uiop:directory-files repo)
-                                      when (assoc (intern (string-upcase (pathname-type file))) commands)
+                                      when (assoc (intern (string-upcase (pathname-type file)) 'keyword) commands)
                                       collect (cons (pathname-name file) file))))))
-    (update-cache 'scripts (or scripts '()))))
+    (update-cache :scripts (or scripts '()))))
 
 (defun get-script-path (name)
   (let* ((tmp (str:split "." name))
          (name (car tmp))
          (type (cadr tmp)))
-    (cdar (member (cons name type) (cdr (assoc 'scripts *cache*))
+    (cdar (member (cons name type) (cdr (assoc :scripts *cache*))
                   :test (lambda (a b)
                           (and (equal (car a) (car b))
                                (or (not (cdr a))
                                    (equal (cdr a) (pathname-type (cdr b))))))))))
 
 (defun run-script (script &rest args)
-  (let* ((type (intern (string-upcase (pathname-type script))))
-         (cmd (cdar (member type (cdr (assoc 'commands *config*)) :key #'car))))
+  (let* ((type (intern (string-upcase (pathname-type script)) 'keyword))
+         (cmd (cdar (member type (cdr (assoc :commands *config*)) :key #'car))))
     (format t "Eval script ~A~%" script)
     (if cmd
         (shell (format nil "~A ~A~{ ~A~}" cmd script args))
@@ -103,7 +103,7 @@
 
 (defun list-script ()
   (scan-scripts)
-  (format t "Scripts:~%~{  ~A~%~}~%" (cdr (assoc 'scripts *cache*))))
+  (format t "Scripts:~%~{  ~A~%~}~%" (cdr (assoc :scripts *cache*))))
 
 (defun cat-script (script)
   (let ((script (get-script-path script)))
@@ -115,7 +115,7 @@
 
 (defun check (&rest args)
   (when (and (not (eq (intern "LIST" 'command) (car args)))
-             (not (cdr (assoc 'scripts *cache*))))
+             (not (cdr (assoc :scripts *cache*))))
     (format t "Empty scripts, scaning...~%")
     (scan-scripts)))
 
