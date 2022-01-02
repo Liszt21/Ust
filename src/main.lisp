@@ -125,8 +125,8 @@
   (:post (lambda (&rest args) (save-cache)))
   (cat #'cat-script)
   (list #'list-script)
-  (remove (lambda (&rest scripts) (apply #'dispatch (cons "remove" scripts))))
   (update (lambda (&rest scripts) (apply #'dispatch (cons "update" scripts))))
-  (install (lambda (&rest scripts) (apply #'dispatch (cons "install" scripts)))))
+  (install (lambda (&rest scripts) (apply #'dispatch (cons "install" scripts))))
+  (uninstall (lambda (&rest scripts) (apply #'dispatch (cons "uninstall" scripts)))))
 
 
