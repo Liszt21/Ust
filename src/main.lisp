@@ -20,7 +20,7 @@
                 (cons :py "python")
                 (cons :js "node")
                 (cons :ts "node")
-                #-os-windows (cons :sh "sh")
+                #-os-windows (cons :sh "bash")
                 #+os-windows (cons :cmd "cmd")
                 #+os-windows (cons :ps1 "powershell"))
           (cons :repos
