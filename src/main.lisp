@@ -59,51 +59,55 @@
 (defun update-cache (key value)
   (setf (cdr (assoc key *cache*)) value))
 
-(defun scan-scripts ()
-  (let* ((repos (cdr (assoc :repos *config*)))
-         (commands (cdr (assoc :commands *config*)))
-         (scripts
-          (apply #'append
-                  (loop for path in repos
-                        for repo = (probe-file (uiop:ensure-directory-pathname path))
-                        when repo
-                        do (format t "Scaning scripts in ~A...~%" path)
-                        when repo
-                        collect (loop for file in (uiop:directory-files repo)
-                                      when (assoc (intern (string-upcase (pathname-type file)) 'keyword) commands)
-                                      collect (cons (pathname-name file) file))))))
-    (update-cache :scripts (or scripts '()))))
+(defun valid-script-p (path)
+  (member (intern (string-upcase (pathname-type path)) 'keyword) (cdr (assoc :commands *config*)) :key #'car))
 
-(defun get-script-path (name)
-  (let* ((tmp (str:split "." name))
-         (name (car tmp))
-         (type (cadr tmp)))
-    (cdar (member (cons name type) (cdr (assoc :scripts *cache*))
-                  :test (lambda (a b)
-                          (and (equal (car a) (car b))
-                               (or (not (cdr a))
-                                   (equal (cdr a) (pathname-type (cdr b))))))))))
+(defun scan-scripts (folder)
+  (when (probe-file folder)
+    (format t "Scanning ~A ~%" folder)
+    (loop for path in (directory (make-pathname :name :wild :type :wild :defaults folder))
+          for name = (pathname-name path)
+          when (not name)
+          collect (cons (car (last (pathname-directory path))) (scan-scripts path))
+          when (and name (valid-script-p path))
+          collect (cons name path))))
 
-(defun run-script (script &rest args)
-  (let* ((type (intern (string-upcase (pathname-type script)) 'keyword))
+(defun this-script-p (key item)
+  (let ((name (car key))
+        (type (cadr key)))
+    (and (equal name (car item))
+         (or (not type) (equal type (and (pathanmep (cdr item)) (pathanme-type (cdr item))))))))
+
+(defun eval-script (path args)
+  (let* ((type (intern (string-upcase (pathname-type path)) 'keyword))
          (cmd (cdar (member type (cdr (assoc :commands *config*)) :key #'car))))
-    (format t "Eval script ~A~%" script)
     (if cmd
-        (shell (format nil "~A ~A~{ ~A~}" cmd script args))
-      (format t "No available command for script ~A~%" script))))
+        (let ((script (format nil "~A ~A~{ ~A~}" cmd path args)))
+          (format t "Eval: ~A ~%" script)
+          (shell script))
+        (format t "No available command for script ~A~%" path))))
 
-(defun default (&rest arguments)
-  (let ((cmd (car arguments))
-        (args (cdr arguments)))
-    (when cmd
-      (let ((script (get-script-path cmd)))
-        (if script
-            (apply #'run-script (cons script args))
-            (format t "Script ~A not founded~%" cmd))))))
+(defun run-script (arguments &optional defaults)
+  (let ((name (car arguments))
+        (args (cdr arguments))
+        (scripts (or defaults (cdr (assoc :scripts *cache*)))))
+    (if name
+        (let ((item (cdar (member (str:split #\. name) scripts :test #'this-script-p))))
+          (if item
+              (if (pathnamep item)
+                  (eval-script item args)
+                  (run-script args item))
+              (format t "Script ~A not founded~%" name)))
+        (print scripts))))
 
-(defun list-script ()
-  (scan-scripts)
-  (format t "Scripts:~%~{  ~A~%~}~%" (cdr (assoc :scripts *cache*))))
+(defun list-scripts ()
+  (update-cache :scripts
+                (apply #'append
+                       (loop for folder in (cdr (assoc :repos *config*))
+                             for scripts = (scan-scripts folder)
+                             when scripts
+                             collect scripts)))
+  (print (cdr (assoc :scripts *cache*))))
 
 (defun cat-script (script)
   (let ((script (get-script-path script)))
@@ -117,16 +121,14 @@
   (when (and (not (eq (intern "LIST" 'command) (car args)))
              (not (cdr (assoc :scripts *cache*))))
     (format t "Empty scripts, scaning...~%")
-    (scan-scripts)))
+    (list-scripts)))
 
 (clish:defcli cli
-  (:default #'default)
   (:pre #'check)
+  (:default (lambda (&rest args) (run-script args)))
   (:post (lambda (&rest args) (save-cache)))
   (cat #'cat-script)
-  (list #'list-script)
+  (list #'list-scripts)
   (update (lambda (&rest scripts) (apply #'dispatch (cons "update" scripts))))
   (install (lambda (&rest scripts) (apply #'dispatch (cons "install" scripts))))
   (uninstall (lambda (&rest scripts) (apply #'dispatch (cons "uninstall" scripts)))))
-
-
