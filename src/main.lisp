@@ -76,7 +76,7 @@
   (let ((name (car key))
         (type (cadr key)))
     (and (equal name (car item))
-         (or (not type) (equal type (and (pathanmep (cdr item)) (pathanme-type (cdr item))))))))
+         (or (not type) (equal type (and (pathnamep (cdr item)) (pathname-type (cdr item))))))))
 
 (defun eval-script (path args)
   (let* ((type (intern (string-upcase (pathname-type path)) 'keyword))
