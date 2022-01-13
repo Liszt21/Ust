@@ -12,6 +12,22 @@
           (read in)))
       default))
 
+(defun to-relative (path &optional (base (probe-file "")))
+  (setf path (uiop:ensure-absolute-pathname path (probe-file "")))
+  (when (equal (pathname-device path)
+               (pathname-device base))
+    (let ((src (pathname-directory base))
+          (tgt (pathname-directory path)))
+      (loop for a in src
+            for b in tgt
+            while (equal a b)
+            do (progn (pop src) (pop tgt)))
+      (make-pathname :directory (append '(:relative)
+                                        (mapcar (lambda (n) (declare (ignorable n)) :up) src)
+                                        tgt)
+                    :name (pathname-name path)
+                    :type (pathname-type path)))))
+
 (defun load-config ()
   (load-file
     #p"~/.config/ust/config"
@@ -20,6 +36,13 @@
                 (cons :py "python")
                 (cons :js "node")
                 (cons :ts "node")
+                (cons :jl "julia")
+                (cons :pl "perl")
+                (cons :go "go run")
+                (cons :lua "lua")
+                (cons :php "php")
+                (cons :clj "clj -M")
+                (cons :scm "guile --no-auto-compile")
                 #-os-windows (cons :sh "bash")
                 #+os-windows (cons :cmd "cmd")
                 #+os-windows (cons :ps1 "powershell"))
@@ -82,7 +105,7 @@
   (let* ((type (intern (string-upcase (pathname-type path)) 'keyword))
          (cmd (cdar (member type (cdr (assoc :commands *config*)) :key #'car))))
     (if cmd
-        (let ((script (format nil "~A ~A~{ ~A~}" cmd path args)))
+        (let ((script (format nil "~A ~A~{ ~A~}" cmd (or (to-relative path) path) args)))
           (format t "Eval: ~A ~%" script)
           (shell script))
         (format t "No available command for script ~A~%" path))))
