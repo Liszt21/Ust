@@ -45,6 +45,8 @@
                 (cons :scm "guile --no-auto-compile")
                 #-os-windows (cons :sh "bash")
                 #+os-windows (cons :cmd "cmd")
+                #+os-windows (cons :reg "powershell")
+                #+os-windows (cons :bat "powershell")
                 #+os-windows (cons :ps1 "powershell"))
           (cons :repos
             (list #p"~/.dotfiles/scripts/"
