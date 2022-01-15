@@ -122,7 +122,9 @@
               (if (pathnamep item)
                   (eval-script item args)
                   (run-script args item))
-              (format t "Script ~A not founded~%" name)))
+              (if (member "default" scripts :test #'equal :key #'car)
+                  (run-script (cons "default" arguments) scripts)
+                  (format t "Script ~A not founded~%" name))))
         (print scripts))))
 
 (defun list-scripts ()
@@ -140,7 +142,7 @@
 
 (defun dispatch (action &rest scripts)
   (dolist (script scripts)
-    (default script action)))
+    (run-script (list script action))))
 
 (defun check (&rest args)
   (when (and (not (eq (intern "LIST" 'command) (car args)))
