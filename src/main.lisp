@@ -136,9 +136,9 @@
                              collect scripts)))
   (print (cdr (assoc :scripts *cache*))))
 
-(defun cat-script (script)
-  (let ((script (get-script-path script)))
-    (format t "Script: ~A:~% ~A~%" script (str:from-file script))))
+(defun display-script-info (&rest scripts)
+  ;;TODO
+  scripts)
 
 (defun dispatch (action &rest scripts)
   (dolist (script scripts)
@@ -150,11 +150,10 @@
     (format t "Empty scripts, scaning...~%")
     (list-scripts)))
 
-(clish:defcli cli
-  (:pre #'check)
-  (:default (lambda (&rest args) (run-script args)))
-  (:post (lambda (&rest args) (save-cache)))
-  (cat #'cat-script)
+(clish:defcli cli (:default (lambda (&rest args) (run-script args))
+                   :before #'check
+                   :after (lambda (&rest args) (declare (ignore args)) (save-cache)))
+  (info #'display-script-info)
   (list #'list-scripts)
   (update (lambda (&rest scripts) (apply #'dispatch (cons "update" scripts))))
   (install (lambda (&rest scripts) (apply #'dispatch (cons "install" scripts))))
