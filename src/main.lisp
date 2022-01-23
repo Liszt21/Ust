@@ -150,9 +150,10 @@
     (format t "Empty scripts, scaning...~%")
     (list-scripts)))
 
-(clish:defcli cli (:default (lambda (&rest args) (run-script args))
-                   :before #'check
-                   :after (lambda (&rest args) (declare (ignore args)) (save-cache)))
+(clish:defcli cli (:docs "Ust cli")
+  (:default (lambda (&rest args) (run-script args)))
+  (:before #'check)
+  (:after (lambda (&rest args) (declare (ignore args)) (save-cache)))
   (info #'display-script-info)
   (list #'list-scripts)
   (update (lambda (&rest scripts) (apply #'dispatch (cons "update" scripts))))
